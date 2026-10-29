@@ -1,0 +1,13 @@
+order_ref,customer_email,order_date,status,product_name,quantity,unit_price
+ORD001,simphiwe@example.com,2026-10-20,COMPLETED,Rice 5kg,2,95.00
+ORD001,simphiwe@example.com,2026-10-20,COMPLETED,Cooking Oil 2L,1,65.50
+ORD002,thando@example.com,2026-10-21,COMPLETED,Sugar 2kg,3,38.00
+ORD002,thando@example.com,2026-10-21,COMPLETED,Bread,2,16.00
+ORD003,ayanda@example.com,2026-10-22,COMPLETED,Laundry Detergent,1,79.99
+ORD003,ayanda@example.com,2026-10-22,COMPLETED,Bath Soap,4,18.50
+ORD004,lutho@example.com,2026-10-23,COMPLETED,Rice 5kg,1,95.00
+ORD004,lutho@example.com,2026-10-23,COMPLETED,Bread,3,16.00
+ORD005,zanele@example.com,2026-10-24,COMPLETED,Cooking Oil 2L,2,65.50
+ORD005,zanele@example.com,2026-10-24,COMPLETED,Sugar 2kg,1,38.00
+ORD006, SIMPHIWE@EXAMPLE.COM ,2026-10-25,COMPLETED,Rice 5kg,1,95.00
+ORD006,simphiwe@example.com,2026-10-25,COMPLETED,Bread,0,16.00
