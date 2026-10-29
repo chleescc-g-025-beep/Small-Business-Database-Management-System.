@@ -1,3 +1,4 @@
+import shutil
 import sqlite3
 import scripts.run_pipeline as pipeline
 import pandas as pd
@@ -215,3 +216,88 @@ def test_pipeline_does_not_duplicate_existing_orders(tmp_path, monkeypatch):
 
     assert order_count == 1
     assert item_count == 1
+
+def test_full_pipeline_generates_correct_reports(tmp_path, monkeypatch):
+    """Test the full pipeline, its reports and repeated execution."""
+
+    # Create isolated directories for this test.
+    raw_dir = tmp_path / "raw"
+    processed_dir = tmp_path / "processed"
+    database_file = tmp_path / "test_database.db"
+
+    raw_dir.mkdir()
+    processed_dir.mkdir()
+
+    # Copy the real input CSVs into the temporary test directory.
+    for filename in ("customers.csv", "products.csv", "sales.csv"):
+        shutil.copy2(
+            pipeline.RAW_DIR / filename,
+            raw_dir / filename,
+        )
+
+    # Redirect the pipeline away from the real database and output folder.
+    monkeypatch.setattr(pipeline, "RAW_DIR", raw_dir)
+    monkeypatch.setattr(pipeline, "PROCESSED_DIR", processed_dir)
+    monkeypatch.setattr(pipeline, "DATABASE_FILE", database_file)
+
+    # Initialise the temporary database using the project schema.
+    schema_path = pipeline.PROJECT_DIR / "database" / "schema.sql"
+
+    with sqlite3.connect(database_file) as connection:
+        connection.executescript(
+            schema_path.read_text(encoding="utf-8")
+        )
+
+    # First execution should import the six orders.
+    pipeline.main()
+
+    report_path = processed_dir / "pipeline_report.csv"
+    rejected_path = processed_dir / "rejected_records.csv"
+
+    assert report_path.exists()
+    assert rejected_path.exists()
+    assert (processed_dir / "customers_clean.csv").exists()
+    assert (processed_dir / "products_clean.csv").exists()
+    assert (processed_dir / "sales_clean.csv").exists()
+
+    report = pd.read_csv(report_path)
+    metrics = dict(zip(report["metric"], report["value"]))
+
+    assert int(metrics["customers_accepted"]) == 5
+    assert int(metrics["products_accepted"]) == 6
+    assert int(metrics["sales_rows_read"]) == 12
+    assert int(metrics["sales_rows_accepted"]) == 11
+    assert int(metrics["sales_rows_rejected"]) == 1
+    assert int(metrics["orders_inserted"]) == 6
+    assert int(metrics["orders_skipped_as_existing"]) == 0
+
+    # Check that the rejected record is the invalid sales row.
+    rejected = pd.read_csv(rejected_path)
+
+    assert len(rejected) == 1
+    assert rejected.iloc[0]["dataset"] == "sales"
+    assert "Invalid field" in rejected.iloc[0]["rejection_reason"]
+
+    # Run the pipeline again to check idempotency.
+    pipeline.main()
+
+    second_report = pd.read_csv(report_path)
+    second_metrics = dict(
+        zip(second_report["metric"], second_report["value"])
+    )
+
+    assert int(second_metrics["orders_inserted"]) == 0
+    assert int(second_metrics["orders_skipped_as_existing"]) == 6
+
+    # Verify the database still contains exactly six orders and 11 items.
+    with sqlite3.connect(database_file) as connection:
+        order_count = connection.execute(
+            "SELECT COUNT(*) FROM orders"
+        ).fetchone()[0]
+
+        item_count = connection.execute(
+            "SELECT COUNT(*) FROM order_items"
+        ).fetchone()[0]
+
+    assert order_count == 6
+    assert item_count == 11
