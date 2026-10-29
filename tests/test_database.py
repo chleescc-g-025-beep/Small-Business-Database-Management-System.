@@ -1,18 +1,50 @@
-
 import sqlite3
 from pathlib import Path
 
 import pytest
 
+from scripts.run_pipeline import (
+    clean_customers,
+    clean_products,
+    clean_sales,
+    load_data,
+    read_csv_files,
+)
+
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-DATABASE_PATH = ROOT_DIR / "database" / "small_business.db"
+SCHEMA_PATH = ROOT_DIR / "database" / "schema.sql"
 
 
 @pytest.fixture
-def connection():
-    """Create a database connection for testing."""
-    conn = sqlite3.connect(DATABASE_PATH)
+def connection(tmp_path, monkeypatch):
+    """Create and populate an isolated temporary database."""
+    database_path = tmp_path / "test_small_business.db"
+
+    # Redirect the ETL loader to the temporary database.
+    monkeypatch.setattr(
+        "scripts.run_pipeline.DATABASE_FILE",
+        database_path,
+    )
+
+    # Create the database tables.
+    with sqlite3.connect(database_path) as conn:
+        conn.execute("PRAGMA foreign_keys = ON")
+        conn.executescript(
+            SCHEMA_PATH.read_text(encoding="utf-8")
+        )
+
+    # Read and clean the sample data.
+    customers_raw, products_raw, sales_raw = read_csv_files()
+    customers, _ = clean_customers(customers_raw)
+    products, _ = clean_products(products_raw)
+    sales, _ = clean_sales(sales_raw, customers, products)
+
+    # Load the sample data into the temporary database.
+    load_data(customers, products, sales)
+
+    # Open a connection for the tests.
+    conn = sqlite3.connect(database_path)
     conn.execute("PRAGMA foreign_keys = ON")
 
     yield conn
@@ -53,7 +85,6 @@ def test_expected_record_counts(connection):
         cursor = connection.execute(
             f"SELECT COUNT(*) FROM {table}"
         )
-
         assert cursor.fetchone()[0] == expected_count
 
 
