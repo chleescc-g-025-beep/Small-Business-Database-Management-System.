@@ -12,4 +12,4 @@ database/*.sqlite
 database/*.sqlite3
 .venv/
 venv/
-
+data/processed/
