@@ -194,5 +194,11 @@ The pipeline processes the CSV files, loads valid records, and generates process
 python -m pytest -v
 
 ```
+### 7. Demonstrate SQL Reporting
+
+``` bash
+sqlite3 -header -column database/small_business.db ".read sql/reports.sql"
+
+```
 
 WTC-8K3KKYLE
