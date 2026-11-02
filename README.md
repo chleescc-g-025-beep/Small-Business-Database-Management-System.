@@ -202,3 +202,4 @@ sqlite3 -header -column database/small_business.db ".read sql/reports.sql"
 ```
 
 WTC-8K3KKYLE
+Youtube link : https://youtu.be/ZV3wtRtY76s
