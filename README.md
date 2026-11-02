@@ -188,4 +188,11 @@ python scripts/run_pipeline.py
 
 The pipeline processes the CSV files, loads valid records, and generates processing reports.
 
+### 6. Automated Tests
+
+```bash
+python -m pytest -v
+
+```
+
 WTC-8K3KKYLE
